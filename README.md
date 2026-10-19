@@ -12,6 +12,7 @@ Aplicación Android para administrar el huerto escolar: sectores, cultivos, tare
 | Oscar Rocha | [@oscarocha-wq](https://github.com/oscarocha-wq) |
 | Yeison Jeldres | — |
 
+Link de trello: https://trello.com/invite/b/6ad540853137fdbe6fd9683a/ATTIab341eff750324329f21a33f6fcffa4aB4AA7E14/huerto-escolar-dsy1105
 ## 🛠️ Tecnologías
 
 - Kotlin + Jetpack Compose (Material 3)
