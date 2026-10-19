@@ -21,10 +21,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cl.duoc.huerto.data.SesionManager
 import cl.duoc.huerto.domain.*
+import cl.duoc.huerto.data.entities.Evidencia
+import cl.duoc.huerto.data.entities.Validacion
 import cl.duoc.huerto.u_i.AccesoDenegado
+import cl.duoc.huerto.u_i.BotonEliminar
+import cl.duoc.huerto.u_i.ChipEstado
+import cl.duoc.huerto.ui.theme.Tono
 import cl.duoc.huerto.u_i.ImagenLocal
 import cl.duoc.huerto.u_i.MensajeError
 import cl.duoc.huerto.u_i.SelectorFoto
+import cl.duoc.huerto.u_i.CampoValidado
 
 @Composable
 fun TareaDetalleScreen(tareaId: Int, onVolver: () -> Unit) {
@@ -34,6 +40,7 @@ fun TareaDetalleScreen(tareaId: Int, onVolver: () -> Unit) {
     )
     val item by viewModel.item.collectAsStateWithLifecycle()
     val ui by viewModel.ui.collectAsStateWithLifecycle()
+    val seguimiento by viewModel.seguimiento.collectAsStateWithLifecycle()
     val sesion by SesionManager.sesion.collectAsStateWithLifecycle()
     var confirmar by remember { mutableStateOf(false) }
 
@@ -41,6 +48,13 @@ fun TareaDetalleScreen(tareaId: Int, onVolver: () -> Unit) {
         ui.mensaje?.let {
             Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
             viewModel.mensajeMostrado()
+        }
+    }
+
+    LaunchedEffect(ui.eliminada) {
+        if (ui.eliminada) {
+            Toast.makeText(context, "Tarea eliminada", Toast.LENGTH_SHORT).show()
+            onVolver()
         }
     }
 
@@ -89,27 +103,34 @@ fun TareaDetalleScreen(tareaId: Int, onVolver: () -> Unit) {
             }
         }
 
-        // --- Seguimiento: evidencia y revisión (aparece con animación) ---
+        // --- Seguimiento: entregas y revisiones (aparece con animación) ---
+        val ultima = seguimiento.ultimaEvidencia
         AnimatedVisibility(
-            visible = t.fechaRealizacion != null,
+            visible = ultima != null,
             enter = fadeIn() + expandVertically()
         ) {
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Seguimiento", style = MaterialTheme.typography.titleMedium)
-                    Dato("Realizada el", formatearFechaHora(t.fechaRealizacion ?: 0L))
-                    t.comentarioEstudiante?.let { Dato("Comentario del estudiante", it) }
-                    t.fotoRuta?.let {
-                        ImagenLocal(
-                            it,
-                            Modifier
-                                .fillMaxWidth()
-                                .height(200.dp)
-                                .clip(MaterialTheme.shapes.medium)
-                        )
+                    Text(
+                        if (seguimiento.intentos > 1) "Última entrega (intento ${seguimiento.intentos})"
+                        else "Entrega",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    ultima?.let { DatosEvidencia(it) }
+                    seguimiento.revisionActual?.let { DatosValidacion(it) }
+                }
+            }
+        }
+
+        // Revisiones anteriores (entregas que fueron rechazadas y corregidas)
+        if (seguimiento.revisionesAnteriores.isNotEmpty()) {
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Revisiones anteriores", style = MaterialTheme.typography.titleMedium)
+                    seguimiento.revisionesAnteriores.forEach { v ->
+                        DatosValidacion(v)
+                        HorizontalDivider()
                     }
-                    t.fechaValidacion?.let { Dato("Revisada el", formatearFechaHora(it)) }
-                    t.comentarioDocente?.let { Dato("Comentario del docente", it) }
                 }
             }
         }
@@ -131,18 +152,21 @@ fun TareaDetalleScreen(tareaId: Int, onVolver: () -> Unit) {
                     ) { Text("Comenzar tarea") }
                 }
 
-                OutlinedTextField(
+                CampoValidado(
                     value = ui.comentario,
                     onValueChange = viewModel::onComentario,
-                    label = { Text("Comentario (opcional)") },
-                    modifier = Modifier.fillMaxWidth()
+                    label = "Comentario (opcional)",
+                    singleLine = false,
+                    minLines = 2,
+                    maxLength = LimitesCampo.COMENTARIO
                 )
-
                 // Galería + cámara + vista previa
                 SelectorFoto(
                     fotoRuta = ui.fotoRuta,
                     onFoto = viewModel::onFoto,
-                    onError = viewModel::onErrorFoto
+                    onError = viewModel::onErrorFoto,
+                    onQuitar = viewModel::quitarFoto,
+                    enabled = !ui.procesando
                 )
 
                 Button(
@@ -161,12 +185,15 @@ fun TareaDetalleScreen(tareaId: Int, onVolver: () -> Unit) {
         }
 
         // --- Acciones del administrador ---
-        if (puedeRevisar(sesion, t.estado, t.realizadaPorId)) {
-            OutlinedTextField(
+        if (puedeRevisar(sesion, t.estado, ultima?.autorId)) {
+            CampoValidado(
                 value = ui.comentario,
                 onValueChange = viewModel::onComentario,
-                label = { Text("Comentario (obligatorio para rechazar)") },
-                modifier = Modifier.fillMaxWidth()
+                label = "Comentario (obligatorio para rechazar)",
+                singleLine = false,
+                minLines = 2,
+                maxLength = LimitesCampo.COMENTARIO,
+                ayuda = "Si rechazas, explica qué corregir (mín. ${LimitesCampo.MOTIVO_RECHAZO_MIN} caracteres)"
             )
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedButton(
@@ -187,6 +214,18 @@ fun TareaDetalleScreen(tareaId: Int, onVolver: () -> Unit) {
                         .height(52.dp)
                 ) { Text("Validar") }
             }
+        }
+
+        // --- Eliminar (solo admin, solo si nadie la ha trabajado) ---
+        if (puedeEliminarTarea(sesion, t.estado, seguimiento.intentos)) {
+            BotonEliminar(
+                texto = "Eliminar tarea",
+                titulo = "¿Eliminar tarea?",
+                mensaje = "La tarea aún no ha sido iniciada ni entregada. Esta acción no se puede deshacer.",
+                onConfirmar = viewModel::eliminar,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !ui.procesando
+            )
         }
 
         MensajeError(ui.error)
@@ -218,4 +257,35 @@ private fun Dato(titulo: String, valor: String) {
         )
         Text(valor, style = MaterialTheme.typography.bodyLarge)
     }
+}
+
+@Composable
+private fun DatosEvidencia(e: Evidencia) {
+    Dato("Entregada el", formatearFechaHora(e.fecha))
+    e.comentario?.let { Dato("Comentario del estudiante", it) }
+    e.fotoRuta?.let {
+        ImagenLocal(
+            it,
+            Modifier
+                .fillMaxWidth()
+                .height(200.dp)
+                .clip(MaterialTheme.shapes.medium)
+        )
+    }
+}
+
+@Composable
+private fun DatosValidacion(v: Validacion) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        ChipEstado(
+            v.resultado.etiqueta(),
+            if (v.resultado == ResultadoValidacion.APROBADA) Tono.EXITO else Tono.ERROR
+        )
+        Text(
+            formatearFechaHora(v.fecha),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+    v.comentario?.let { Dato("Comentario del docente", it) }
 }

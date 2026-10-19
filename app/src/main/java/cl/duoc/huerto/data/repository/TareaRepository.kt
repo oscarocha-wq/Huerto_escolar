@@ -12,4 +12,5 @@ class TareaRepository(private val dao: TareaDao) {
     suspend fun porId(id: Int): Tarea? = dao.porId(id)
     suspend fun crear(tarea: Tarea) { dao.insertar(tarea) }
     suspend fun actualizar(tarea: Tarea) = dao.actualizar(tarea)
+    suspend fun eliminar(tarea: Tarea) = dao.eliminar(tarea)
 }

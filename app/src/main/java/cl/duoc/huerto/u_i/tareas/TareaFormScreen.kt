@@ -19,10 +19,12 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import cl.duoc.huerto.domain.LimitesCampo
 import cl.duoc.huerto.domain.TipoTarea
 import cl.duoc.huerto.domain.etiqueta
 import cl.duoc.huerto.u_i.BotonAccion
 import cl.duoc.huerto.u_i.CampoFecha
+import cl.duoc.huerto.u_i.CampoValidado
 import cl.duoc.huerto.u_i.MensajeError
 import cl.duoc.huerto.u_i.SelectorDesplegable
 
@@ -68,15 +70,16 @@ fun TareaFormScreen(onVolver: () -> Unit) {
             enabled = libre
         )
 
-        OutlinedTextField(
+        CampoValidado(
             value = estado.descripcion,
             onValueChange = viewModel::onDescripcion,
-            label = { Text("Instrucciones para el estudiante") },
+            label = "Instrucciones para el estudiante",
+            error = estado.errores.descripcion,
+            ayuda = "Explica qué hacer (mín. ${LimitesCampo.TAREA_DESCRIPCION_MIN} caracteres)",
+            maxLength = LimitesCampo.TAREA_DESCRIPCION,
+            singleLine = false,
             minLines = 3,
-            isError = estado.errores.descripcion != null,
-            supportingText = { estado.errores.descripcion?.let { Text(it) } },
-            enabled = libre,
-            modifier = Modifier.fillMaxWidth()
+            enabled = libre
         )
 
         SelectorDesplegable(
@@ -117,12 +120,13 @@ fun TareaFormScreen(onVolver: () -> Unit) {
                     .selectable(
                         selected = estado.modo == modo,
                         onClick = { viewModel.onModo(modo) },
+                        enabled = libre,
                         role = Role.RadioButton
                     )
                     .padding(vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                RadioButton(selected = estado.modo == modo, onClick = null)
+                RadioButton(selected = estado.modo == modo, onClick = null, enabled = libre)
                 Spacer(Modifier.width(12.dp))
                 Text(if (modo == ModoAsignacion.ESTUDIANTE) "Un estudiante" else "Un grupo")
             }

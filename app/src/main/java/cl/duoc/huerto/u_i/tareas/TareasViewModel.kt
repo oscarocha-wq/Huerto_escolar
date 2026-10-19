@@ -35,9 +35,10 @@ class TareasViewModel(
         }
     }
 
-    val tareas: StateFlow<List<TareaItem>> =
+    /** null = todavía cargando. */
+    val tareas: StateFlow<List<TareaItem>?> =
         combine(todas, _filtro) { items, f -> items.filter { f.acepta(it) } }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     fun onFiltro(f: FiltroTarea) { _filtro.value = f }
 

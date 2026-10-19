@@ -69,3 +69,8 @@ fun TipoEvento.tono(): Tono = when (this) {
     TipoEvento.TAREA_VALIDADA, TipoEvento.PROBLEMA_ATENDIDO -> Tono.EXITO
     TipoEvento.TAREA_RECHAZADA, TipoEvento.PROBLEMA_REPORTADO -> Tono.ERROR
 }
+
+fun EstadoLectura.tono(): Tono = when (this) {
+    EstadoLectura.NORMAL -> Tono.EXITO
+    EstadoLectura.BAJO, EstadoLectura.ALTO -> Tono.ADVERTENCIA
+}

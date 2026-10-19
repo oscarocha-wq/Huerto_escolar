@@ -8,6 +8,10 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Eco
+import androidx.compose.material.icons.filled.EditNote
+import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -20,9 +24,13 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cl.duoc.huerto.domain.EstadoCultivo
+import cl.duoc.huerto.domain.LimitesCampo
 import cl.duoc.huerto.domain.etiqueta
 import cl.duoc.huerto.u_i.BotonAccion
+import cl.duoc.huerto.u_i.BotonEliminar
+import cl.duoc.huerto.u_i.SelectorFoto
 import cl.duoc.huerto.u_i.CampoFecha
+import cl.duoc.huerto.u_i.CampoValidado
 import cl.duoc.huerto.u_i.MensajeError
 import cl.duoc.huerto.u_i.SelectorDesplegable
 
@@ -44,6 +52,13 @@ fun CultivoFormScreen(cultivoId: Int, onVolver: () -> Unit) {
         }
     }
 
+    LaunchedEffect(estado.eliminado) {
+        if (estado.eliminado) {
+            Toast.makeText(context, "Cultivo eliminado", Toast.LENGTH_SHORT).show()
+            onVolver()
+        }
+    }
+
     Column(
         Modifier
             .fillMaxSize()
@@ -61,22 +76,25 @@ fun CultivoFormScreen(cultivoId: Int, onVolver: () -> Unit) {
             )
         }
 
-        OutlinedTextField(
+        CampoValidado(
             value = estado.nombre,
             onValueChange = viewModel::onNombre,
-            label = { Text("Nombre común (ej: Lechuga)") },
-            singleLine = true,
-            isError = estado.errores.nombre != null,
-            supportingText = { estado.errores.nombre?.let { Text(it) } },
-            enabled = libre,
-            modifier = Modifier.fillMaxWidth()
+            label = "Nombre común (ej: Lechuga)",
+            icono = Icons.Filled.Eco,
+            error = estado.errores.nombre,
+            maxLength = LimitesCampo.CULTIVO_NOMBRE,
+            enabled = libre
         )
-        OutlinedTextField(
+        CampoValidado(
             value = estado.descripcion,
             onValueChange = viewModel::onDescripcion,
-            label = { Text("Descripción") },
-            enabled = libre,
-            modifier = Modifier.fillMaxWidth()
+            label = "Descripción (opcional)",
+            icono = Icons.Filled.Description,
+            error = estado.errores.descripcion,
+            maxLength = LimitesCampo.CULTIVO_DESCRIPCION,
+            singleLine = false,
+            minLines = 2,
+            enabled = libre
         )
 
         SelectorDesplegable(
@@ -100,16 +118,15 @@ fun CultivoFormScreen(cultivoId: Int, onVolver: () -> Unit) {
             viewModel::onFechaCosecha, estado.errores.cosecha, libre
         )
 
-        OutlinedTextField(
+        CampoValidado(
             value = estado.frecuencia,
             onValueChange = viewModel::onFrecuencia,
-            label = { Text("Riego cada (días)") },
-            singleLine = true,
+            label = "Riego cada (días)",
+            icono = Icons.Filled.WaterDrop,
+            error = estado.errores.frecuencia,
+            ayuda = "Entre 1 y ${LimitesCampo.RIEGO_MAX_DIAS} días",
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            isError = estado.errores.frecuencia != null,
-            supportingText = { estado.errores.frecuencia?.let { Text(it) } },
-            enabled = libre,
-            modifier = Modifier.fillMaxWidth()
+            enabled = libre
         )
 
         SelectorDesplegable(
@@ -121,12 +138,25 @@ fun CultivoFormScreen(cultivoId: Int, onVolver: () -> Unit) {
             enabled = libre
         )
 
-        OutlinedTextField(
+        CampoValidado(
             value = estado.observaciones,
             onValueChange = viewModel::onObservaciones,
-            label = { Text("Observaciones generales") },
-            enabled = libre,
-            modifier = Modifier.fillMaxWidth()
+            label = "Observaciones generales (opcional)",
+            icono = Icons.Filled.EditNote,
+            error = estado.errores.observaciones,
+            maxLength = LimitesCampo.COMENTARIO,
+            singleLine = false,
+            minLines = 2,
+            enabled = libre
+        )
+
+        Text("Fotografía del cultivo (opcional)", style = MaterialTheme.typography.titleSmall)
+        SelectorFoto(
+            fotoRuta = estado.fotoRuta,
+            onFoto = viewModel::onFoto,
+            onError = viewModel::onErrorFoto,
+            onQuitar = viewModel::quitarFoto,
+            enabled = libre
         )
 
         MensajeError(estado.errorGeneral)
@@ -138,5 +168,15 @@ fun CultivoFormScreen(cultivoId: Int, onVolver: () -> Unit) {
             onClick = viewModel::guardar,
             modifier = Modifier.fillMaxWidth()
         )
+        if (estado.esEdicion) {
+            BotonEliminar(
+                texto = "Eliminar cultivo",
+                titulo = "¿Eliminar cultivo?",
+                mensaje = "Solo se puede eliminar si ninguna tarea lo usa. Esta acción no se puede deshacer.",
+                onConfirmar = viewModel::eliminar,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = libre
+            )
+        }
     }
 }

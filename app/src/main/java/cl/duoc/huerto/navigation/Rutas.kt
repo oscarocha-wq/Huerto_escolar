@@ -1,8 +1,8 @@
 package cl.duoc.huerto.navigation
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.filled.Agriculture
-import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material.icons.filled.Grass
 import androidx.compose.material.icons.filled.Home
@@ -24,6 +24,10 @@ object Rutas {
     const val SECTORES = "sectores"
     const val SECTOR_FORM = "sector_form/{id}"
     fun sectorForm(id: Int) = "sector_form/$id"
+    const val SECTOR_DETALLE = "sector_detalle/{id}"
+    fun sectorDetalle(id: Int) = "sector_detalle/$id"
+    const val SENSORES = "sensores/{id}"
+    fun sensores(id: Int) = "sensores/$id"
     const val CULTIVOS = "cultivos"
     const val CULTIVO_FORM = "cultivo_form/{id}"
     fun cultivoForm(id: Int) = "cultivo_form/$id"
@@ -49,7 +53,7 @@ val menuAdministrador = listOf(
     ItemMenu(Rutas.INICIO, "Inicio", Icons.Filled.Home),
     ItemMenu(Rutas.SECTORES, "Sectores", Icons.Filled.Grass),
     ItemMenu(Rutas.CULTIVOS, "Cultivos", Icons.Filled.Eco),
-    ItemMenu(Rutas.TAREAS_ADMIN, "Tareas", Icons.Filled.Assignment),
+    ItemMenu(Rutas.TAREAS_ADMIN, "Tareas", Icons.AutoMirrored.Filled.Assignment),
     ItemMenu(Rutas.PROBLEMAS_ADMIN, "Problemas", Icons.Filled.Warning)
 )
 

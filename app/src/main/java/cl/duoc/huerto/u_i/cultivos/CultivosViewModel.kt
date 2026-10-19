@@ -20,11 +20,12 @@ class CultivosViewModel(
     sectorRepo: SectorRepository
 ) : ViewModel() {
 
-    val cultivos: StateFlow<List<CultivoItem>> =
+    /** null = cargando. */
+    val cultivos: StateFlow<List<CultivoItem>?> =
         combine(cultivoRepo.cultivos(), sectorRepo.sectores()) { cultivos, sectores ->
             val nombres = sectores.associate { it.id to "${it.codigo} · ${it.nombre}" }
-            cultivos.map { CultivoItem(it, nombres[it.sectorId] ?: "Sector desconocido") }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+            cultivos.sortedBy { it.nombre }.map { CultivoItem(it, nombres[it.sectorId] ?: "Sector desconocido") }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     companion object {
         fun factory(app: Application) = object : ViewModelProvider.Factory {

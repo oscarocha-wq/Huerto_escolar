@@ -19,6 +19,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import cl.duoc.huerto.data.SesionManager
 import cl.duoc.huerto.domain.*
 import cl.duoc.huerto.u_i.AccesoDenegado
+import cl.duoc.huerto.u_i.CampoValidado
 import cl.duoc.huerto.u_i.ImagenLocal
 
 @Composable
@@ -94,11 +95,13 @@ fun ProblemaDetalleScreen(problemaId: Int, onVolver: () -> Unit) {
         // Solo el administrador ve estas acciones
         val siguientes = siguientesEstados(p.estado)
         if (puedeGestionarProblema(sesion) && siguientes.isNotEmpty()) {
-            OutlinedTextField(
+            CampoValidado(
                 value = ui.comentario,
                 onValueChange = viewModel::onComentario,
-                label = { Text("Comentario de seguimiento") },
-                modifier = Modifier.fillMaxWidth()
+                label = "Comentario de seguimiento",
+                singleLine = false,
+                minLines = 2,
+                maxLength = LimitesCampo.COMENTARIO
             )
             siguientes.forEach { nuevo ->
                 Button(

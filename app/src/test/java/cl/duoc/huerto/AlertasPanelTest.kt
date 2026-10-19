@@ -136,11 +136,16 @@ class AlertasPanelTest {
     }
 
     @Test fun `historial ordena del mas reciente al mas antiguo`() {
-        val t = tarea(estado = EstadoTarea.VALIDADA).copy(
-            fechaCreacion = 100L, fechaRealizacion = 200L, realizadaPorId = "EST-01",
-            validadorId = "ADM-01", fechaValidacion = 300L
+        val t = tarea(estado = EstadoTarea.VALIDADA).copy(fechaCreacion = 100L)
+        val e = Evidencia(id = 1, tareaId = 1, autorId = "EST-01", fecha = 200L, comentario = "Listo", fotoRuta = null)
+        val v = Validacion(
+            id = 1, tareaId = 1, evidenciaId = 1, validadorId = "ADM-01",
+            resultado = ResultadoValidacion.APROBADA, comentario = null, fecha = 300L
         )
-        val h = construirHistorial(admin, listOf(t), emptyList(), mapOf("EST-01" to "Estudiante Uno"))
+        val h = construirHistorial(
+            admin, listOf(t), emptyList(), mapOf("EST-01" to "Estudiante Uno"),
+            evidencias = listOf(e), validaciones = listOf(v)
+        )
         assertEquals(
             listOf(TipoEvento.TAREA_VALIDADA, TipoEvento.TAREA_ENVIADA, TipoEvento.TAREA_ASIGNADA),
             h.map { it.tipo }
@@ -152,11 +157,26 @@ class AlertasPanelTest {
         assertTrue(h.isEmpty())
     }
 
-    @Test fun `una tarea reenviada no muestra la revision anterior`() {
-        val t = tarea(estado = EstadoTarea.PENDIENTE_DE_VALIDACION).copy(
-            fechaRealizacion = 400L, realizadaPorId = "EST-01", fechaValidacion = null
+    @Test fun `una tarea rechazada y reenviada conserva todo su historial`() {
+        val t = tarea(estado = EstadoTarea.PENDIENTE_DE_VALIDACION).copy(fechaCreacion = 100L)
+        val e1 = Evidencia(id = 1, tareaId = 1, autorId = "EST-01", fecha = 200L, comentario = "Primera", fotoRuta = null)
+        val rechazo = Validacion(
+            id = 1, tareaId = 1, evidenciaId = 1, validadorId = "ADM-01",
+            resultado = ResultadoValidacion.RECHAZADA, comentario = "Falta regar el sector completo", fecha = 300L
         )
-        val h = construirHistorial(admin, listOf(t), emptyList(), emptyMap())
-        assertTrue(h.none { it.tipo == TipoEvento.TAREA_VALIDADA || it.tipo == TipoEvento.TAREA_RECHAZADA })
+        val e2 = Evidencia(id = 2, tareaId = 1, autorId = "EST-01", fecha = 400L, comentario = "Corregida", fotoRuta = null)
+        val h = construirHistorial(
+            admin, listOf(t), emptyList(), emptyMap(),
+            evidencias = listOf(e1, e2), validaciones = listOf(rechazo)
+        )
+        assertEquals(
+            listOf(
+                TipoEvento.TAREA_ENVIADA, TipoEvento.TAREA_RECHAZADA,
+                TipoEvento.TAREA_ENVIADA, TipoEvento.TAREA_ASIGNADA
+            ),
+            h.map { it.tipo }
+        )
+        // Las claves no se repiten (LazyColumn las usa como key)
+        assertEquals(h.size, h.map { it.clave }.toSet().size)
     }
 }

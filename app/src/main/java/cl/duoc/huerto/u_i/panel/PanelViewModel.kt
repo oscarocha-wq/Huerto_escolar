@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import cl.duoc.huerto.data.AppDatabase
 import cl.duoc.huerto.data.SesionManager
+import cl.duoc.huerto.data.entities.*
 import cl.duoc.huerto.data.repository.*
 import cl.duoc.huerto.domain.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -19,12 +20,22 @@ data class PanelUi(
     val historial: List<EventoHistorial> = emptyList()
 )
 
+/** Agrupa los datos base (combine acepta hasta 5 flujos a la vez). */
+private data class DatosPanel(
+    val tareas: List<Tarea>,
+    val cultivos: List<Cultivo>,
+    val sectores: List<Sector>,
+    val problemas: List<Problema>,
+    val usuarios: List<Usuario>
+)
+
 class PanelViewModel(
     tareaRepo: TareaRepository,
     cultivoRepo: CultivoRepository,
     sectorRepo: SectorRepository,
     problemaRepo: ProblemaRepository,
-    usuarioRepo: UsuarioRepository
+    usuarioRepo: UsuarioRepository,
+    seguimientoRepo: SeguimientoRepository
 ) : ViewModel() {
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -37,19 +48,25 @@ class PanelViewModel(
             val usuarios = if (sesion.esAdministrador) usuarioRepo.estudiantes()
             else flowOf(emptyList())
 
-            combine(
+            val datos = combine(
                 tareaRepo.todas(), cultivoRepo.cultivos(), sectorRepo.sectores(), problemas, usuarios
             ) { tareas, cultivos, sectores, probs, users ->
+                DatosPanel(tareas, cultivos, sectores, probs, users)
+            }
+
+            combine(datos, seguimientoRepo.evidencias(), seguimientoRepo.validaciones()) { d, evid, valid ->
                 val hoy = inicioDeHoyUtc()
-                // Las tareas se filtran por sesión dentro de las funciones del dominio
-                val alertas = generarAlertas(sesion, tareas, cultivos, sectores, probs, hoy)
+                // Todo se filtra por sesión dentro de las funciones del dominio
+                val alertas = generarAlertas(sesion, d.tareas, d.cultivos, d.sectores, d.problemas, hoy)
                 PanelUi(
                     nombre = sesion.nombre,
                     esAdmin = sesion.esAdministrador,
-                    resumen = construirResumen(sesion, tareas, probs, alertas.size, hoy),
+                    resumen = construirResumen(sesion, d.tareas, d.problemas, alertas.size, hoy),
                     alertas = alertas,
                     historial = construirHistorial(
-                        sesion, tareas, probs, users.associate { it.id to it.nombre }
+                        sesion, d.tareas, d.problemas,
+                        d.usuarios.associate { it.id to it.nombre },
+                        evid, valid
                     )
                 )
             }
@@ -66,7 +83,8 @@ class PanelViewModel(
                     CultivoRepository(db.cultivoDao()),
                     SectorRepository(db.sectorDao()),
                     ProblemaRepository(db.problemaDao()),
-                    UsuarioRepository(db.usuarioDao())
+                    UsuarioRepository(db.usuarioDao()),
+                    SeguimientoRepository(db.seguimientoDao())
                 ) as T
             }
         }

@@ -18,3 +18,4 @@ enum class TipoProblema {
     FALTA_AGUA, DANO_PLANTA, PLAGA_SIMULADA, DETERIORO_SECTOR, MANTENIMIENTO, OTRO
 }
 enum class EstadoProblema { INFORMADO, EN_REVISION, ATENDIDO, CERRADO }
+enum class ResultadoValidacion { APROBADA, RECHAZADA }

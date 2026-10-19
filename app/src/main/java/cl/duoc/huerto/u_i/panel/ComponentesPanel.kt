@@ -3,6 +3,8 @@ package cl.duoc.huerto.u_i.panel
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Assignment
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -29,8 +31,8 @@ fun iconoDe(tipo: TipoAlerta): ImageVector = when (tipo) {
 }
 
 fun iconoDe(tipo: TipoEvento): ImageVector = when (tipo) {
-    TipoEvento.TAREA_ASIGNADA -> Icons.Filled.Assignment
-    TipoEvento.TAREA_ENVIADA -> Icons.Filled.Send
+    TipoEvento.TAREA_ASIGNADA -> Icons.AutoMirrored.Filled.Assignment
+    TipoEvento.TAREA_ENVIADA -> Icons.AutoMirrored.Filled.Send
     TipoEvento.TAREA_VALIDADA -> Icons.Filled.CheckCircle
     TipoEvento.TAREA_RECHAZADA -> Icons.Filled.Replay
     TipoEvento.PROBLEMA_REPORTADO -> Icons.Filled.ReportProblem

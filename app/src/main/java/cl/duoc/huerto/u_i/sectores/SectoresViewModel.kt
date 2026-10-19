@@ -13,8 +13,9 @@ import kotlinx.coroutines.flow.stateIn
 
 class SectoresViewModel(repo: SectorRepository) : ViewModel() {
 
-    val sectores: StateFlow<List<Sector>> = repo.sectores()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    /** null = todavía cargando; lista vacía = no hay sectores. */
+    val sectores: StateFlow<List<Sector>?> = repo.sectores()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     companion object {
         fun factory(app: Application) = object : ViewModelProvider.Factory {

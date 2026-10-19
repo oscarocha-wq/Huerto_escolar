@@ -12,6 +12,7 @@ import cl.duoc.huerto.domain.ErroresSector
 import cl.duoc.huerto.domain.EstadoSector
 import cl.duoc.huerto.domain.Perfil
 import cl.duoc.huerto.domain.puedeAcceder
+import cl.duoc.huerto.domain.motivoNoEliminarSector
 import cl.duoc.huerto.domain.validarSector
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,7 +32,8 @@ data class SectorFormState(
     val errorGeneral: String? = null,
     val esEdicion: Boolean = false,
     val cargando: Boolean = false,
-    val guardado: Boolean = false
+    val guardado: Boolean = false,
+    val eliminado: Boolean = false
 )
 
 class SectorFormViewModel(
@@ -72,10 +74,11 @@ class SectorFormViewModel(
         }
     }
 
+    // Al escribir en un campo, se limpia solo el error de ese campo
     fun onCodigo(v: String) = _estado.update { it.copy(codigo = v, errores = it.errores.copy(codigo = null)) }
     fun onNombre(v: String) = _estado.update { it.copy(nombre = v, errores = it.errores.copy(nombre = null)) }
-    fun onDescripcion(v: String) = _estado.update { it.copy(descripcion = v) }
-    fun onUbicacion(v: String) = _estado.update { it.copy(ubicacion = v) }
+    fun onDescripcion(v: String) = _estado.update { it.copy(descripcion = v, errores = it.errores.copy(descripcion = null)) }
+    fun onUbicacion(v: String) = _estado.update { it.copy(ubicacion = v, errores = it.errores.copy(ubicacion = null)) }
     fun onEstado(v: EstadoSector) = _estado.update { it.copy(estado = v) }
 
     fun guardar() {
@@ -87,7 +90,7 @@ class SectorFormViewModel(
         }
 
         val actual = _estado.value
-        val errores = validarSector(actual.codigo, actual.nombre)
+        val errores = validarSector(actual.codigo, actual.nombre, actual.ubicacion, actual.descripcion)
         if (errores.hayErrores) {
             _estado.update { it.copy(errores = errores, errorGeneral = null) }
             return
@@ -100,7 +103,10 @@ class SectorFormViewModel(
 
             if (repo.codigoDuplicado(codigo, idExcluido)) {
                 _estado.update {
-                    it.copy(cargando = false, errores = ErroresSector(codigo = "Ya existe un sector con ese código"))
+                    it.copy(
+                        cargando = false,
+                        errores = it.errores.copy(codigo = "Ya existe un sector con ese código")
+                    )
                 }
                 return@launch
             }
@@ -121,6 +127,31 @@ class SectorFormViewModel(
                 )
             )
             _estado.update { it.copy(cargando = false, guardado = true) }
+        }
+    }
+
+    fun eliminar() {
+        val sesion = SesionManager.sesion.value
+        if (!sesion.puedeAcceder(Perfil.ADMINISTRADOR)) {
+            _estado.update { it.copy(errorGeneral = "No tienes permiso para eliminar sectores") }
+            return
+        }
+        val sector = original ?: return
+        viewModelScope.launch {
+            _estado.update { it.copy(cargando = true, errorGeneral = null) }
+            // Regla de negocio: no se borra un sector con datos asociados
+            val motivo = motivoNoEliminarSector(repo.dependencias(sector.id))
+            if (motivo != null) {
+                _estado.update { it.copy(cargando = false, errorGeneral = motivo) }
+                return@launch
+            }
+            try {
+                repo.eliminar(sector)
+                _estado.update { it.copy(cargando = false, eliminado = true) }
+            } catch (e: Exception) {
+                // Respaldo: la clave foránea (RESTRICT) también lo impide
+                _estado.update { it.copy(cargando = false, errorGeneral = "No se pudo eliminar: el sector tiene datos asociados") }
+            }
         }
     }
 

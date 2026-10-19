@@ -6,8 +6,10 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import cl.duoc.huerto.data.AppDatabase
 import cl.duoc.huerto.data.SesionManager
+import cl.duoc.huerto.data.entities.Evidencia
 import cl.duoc.huerto.data.entities.Tarea
 import cl.duoc.huerto.data.entities.Usuario
+import cl.duoc.huerto.data.entities.Validacion
 import cl.duoc.huerto.data.repository.*
 import cl.duoc.huerto.domain.*
 import kotlinx.coroutines.flow.*
@@ -18,11 +20,13 @@ data class DetalleUi(
     val fotoRuta: String? = null,
     val error: String? = null,
     val mensaje: String? = null,
-    val procesando: Boolean = false
+    val procesando: Boolean = false,
+    val eliminada: Boolean = false
 )
 
 class TareaDetalleViewModel(
     private val repo: TareaRepository,
+    private val seguimientoRepo: SeguimientoRepository,
     sectorRepo: SectorRepository,
     cultivoRepo: CultivoRepository,
     usuarioRepo: UsuarioRepository,
@@ -43,6 +47,12 @@ class TareaDetalleViewModel(
         tarea?.let { construirItems(listOf(it), sectores, cultivos, est).firstOrNull() }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
+    /** Entregas y revisiones de esta tarea (tablas Evidencia y Validacion). */
+    val seguimiento: StateFlow<Seguimiento> = combine(
+        seguimientoRepo.evidenciasDe(tareaId), seguimientoRepo.validacionesDe(tareaId)
+    ) { evidencias, validaciones -> Seguimiento(evidencias, validaciones) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Seguimiento())
+
     fun onComentario(v: String) = _ui.update { it.copy(comentario = v, error = null) }
 
     fun onFoto(ruta: String?) = _ui.update {
@@ -50,6 +60,7 @@ class TareaDetalleViewModel(
         else it.copy(fotoRuta = ruta, error = null)
     }
     fun onErrorFoto(mensaje: String) = _ui.update { it.copy(error = mensaje) }
+    fun quitarFoto() = _ui.update { it.copy(fotoRuta = null) }
 
     fun mensajeMostrado() = _ui.update { it.copy(mensaje = null) }
 
@@ -85,17 +96,22 @@ class TareaDetalleViewModel(
                 return@launch
             }
             val u = _ui.value
+            val comentario = u.comentario.trim()
+            val error = validarEntrega(comentario, u.fotoRuta)
+            if (error != null) {
+                _ui.update { it.copy(error = error) }
+                return@launch
+            }
             _ui.update { it.copy(procesando = true) }
-            // El estudiante nunca deja la tarea "validada": queda pendiente de validación
-            repo.actualizar(
-                tarea.copy(
-                    estado = EstadoTarea.PENDIENTE_DE_VALIDACION,
-                    fechaRealizacion = System.currentTimeMillis(),
-                    realizadaPorId = sesion.usuarioId,
-                    fotoRuta = u.fotoRuta ?: tarea.fotoRuta,
-                    comentarioEstudiante = u.comentario.trim().ifBlank { null },
-                    validadorId = null,
-                    fechaValidacion = null
+            // Se guarda una evidencia nueva y la tarea queda pendiente de validación
+            // (el estudiante nunca la deja validada). Todo en una transacción.
+            seguimientoRepo.entregar(
+                Evidencia(
+                    tareaId = tarea.id,
+                    autorId = sesion.usuarioId,
+                    fecha = System.currentTimeMillis(),
+                    comentario = comentario.ifBlank { null },
+                    fotoRuta = u.fotoRuta
                 )
             )
             _ui.value = DetalleUi(mensaje = "Tarea enviada para validación")
@@ -109,27 +125,59 @@ class TareaDetalleViewModel(
         viewModelScope.launch {
             val sesion = SesionManager.sesion.value
             val tarea = repo.porId(tareaId) ?: return@launch
-            if (!puedeRevisar(sesion, tarea.estado, tarea.realizadaPorId)) {
+            val entrega = seguimientoRepo.ultimaEvidencia(tareaId)
+            if (sesion == null || !puedeRevisar(sesion, tarea.estado, entrega?.autorId)) {
                 _ui.update { it.copy(error = "No tienes permiso para revisar esta tarea") }
                 return@launch
             }
             val comentario = _ui.value.comentario.trim()
-            if (!aprobar && comentario.isBlank()) {
-                _ui.update { it.copy(error = "Escribe un comentario para indicar qué debe corregirse") }
+            val errorComentario = if (aprobar) {
+                Reglas.largo(comentario, "el comentario", LimitesCampo.COMENTARIO)
+            } else {
+                Reglas.requeridoYLargo(
+                    comentario, "el motivo del rechazo",
+                    LimitesCampo.COMENTARIO, min = LimitesCampo.MOTIVO_RECHAZO_MIN
+                )
+            }
+            if (errorComentario != null) {
+                _ui.update { it.copy(error = errorComentario) }
                 return@launch
             }
             _ui.update { it.copy(procesando = true) }
-            repo.actualizar(
-                tarea.copy(
-                    estado = if (aprobar) EstadoTarea.VALIDADA else EstadoTarea.RECHAZADA,
-                    comentarioDocente = comentario.ifBlank { null },
-                    validadorId = sesion?.usuarioId,
-                    fechaValidacion = System.currentTimeMillis()
+            seguimientoRepo.registrarValidacion(
+                Validacion(
+                    tareaId = tarea.id,
+                    evidenciaId = entrega?.id,
+                    validadorId = sesion.usuarioId,
+                    resultado = if (aprobar) ResultadoValidacion.APROBADA else ResultadoValidacion.RECHAZADA,
+                    comentario = comentario.ifBlank { null },
+                    fecha = System.currentTimeMillis()
                 )
             )
             _ui.value = DetalleUi(
                 mensaje = if (aprobar) "Tarea validada" else "Tarea rechazada: el estudiante deberá repetirla"
             )
+        }
+    }
+
+    fun eliminar() {
+        viewModelScope.launch {
+            val sesion = SesionManager.sesion.value
+            val tarea = repo.porId(tareaId) ?: return@launch
+            val entregas = seguimientoRepo.contarEvidencias(tareaId)
+            if (!puedeEliminarTarea(sesion, tarea.estado, entregas)) {
+                _ui.update {
+                    it.copy(error = "Solo se pueden eliminar tareas pendientes que nadie ha entregado")
+                }
+                return@launch
+            }
+            _ui.update { it.copy(procesando = true) }
+            try {
+                repo.eliminar(tarea)
+                _ui.update { it.copy(procesando = false, eliminada = true) }
+            } catch (e: Exception) {
+                _ui.update { it.copy(procesando = false, error = "No se pudo eliminar la tarea") }
+            }
         }
     }
 
@@ -140,6 +188,7 @@ class TareaDetalleViewModel(
                 val db = AppDatabase.get(app)
                 return TareaDetalleViewModel(
                     TareaRepository(db.tareaDao()),
+                    SeguimientoRepository(db.seguimientoDao()),
                     SectorRepository(db.sectorDao()),
                     CultivoRepository(db.cultivoDao()),
                     UsuarioRepository(db.usuarioDao()),

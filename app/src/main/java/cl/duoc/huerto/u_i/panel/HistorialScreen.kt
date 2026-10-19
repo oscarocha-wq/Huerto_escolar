@@ -39,7 +39,7 @@ fun HistorialScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(eventos, key = { "${it.tipo}-${it.tareaId}-${it.problemaId}" }) { evento ->
+                items(eventos, key = { it.clave }) { evento ->
                     val (fondo, contenido) = coloresDe(evento.tipo)
                     Box(Modifier.animateItem()) {
                         Card(Modifier.fillMaxWidth()) {

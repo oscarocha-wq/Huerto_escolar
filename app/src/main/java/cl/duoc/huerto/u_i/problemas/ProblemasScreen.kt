@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ReportProblem
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -20,6 +21,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import cl.duoc.huerto.domain.EstadoProblema
 import cl.duoc.huerto.domain.etiqueta
 import cl.duoc.huerto.domain.formatearFechaHora
+import cl.duoc.huerto.u_i.Cargando
+import cl.duoc.huerto.u_i.panel.EstadoVacio
 
 @Composable
 fun ProblemasScreen(
@@ -57,17 +60,26 @@ fun ProblemasScreen(
                 }
             }
 
-            if (problemas.isEmpty()) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(if (esAdmin) "No hay problemas reportados" else "Aún no has reportado problemas")
-                }
-            } else {
-                LazyColumn(
+            val lista = problemas
+            when {
+                lista == null -> Cargando()
+                lista.isEmpty() -> EstadoVacio(
+                    Icons.Filled.ReportProblem,
+                    "Sin problemas",
+                    when {
+                        filtro != null -> "No hay problemas en estado \"${filtro!!.etiqueta()}\"."
+                        esAdmin -> "Nadie ha reportado problemas todavía."
+                        else -> "Aún no has reportado problemas. Usa \"Reportar problema\"."
+                    }
+                )
+                else -> LazyColumn(
                     contentPadding = PaddingValues(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 96.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(problemas, key = { it.problema.id }) { item ->
-                        ProblemaCard(item, mostrarAutor = esAdmin, onClick = { onAbrir(item.problema.id) })
+                    items(lista, key = { it.problema.id }) { item ->
+                        Box(Modifier.animateItem()) {
+                            ProblemaCard(item, mostrarAutor = esAdmin, onClick = { onAbrir(item.problema.id) })
+                        }
                     }
                 }
             }

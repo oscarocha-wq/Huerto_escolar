@@ -16,9 +16,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cl.duoc.huerto.domain.MAX_DESCRIPCION_PROBLEMA
+import cl.duoc.huerto.domain.MIN_DESCRIPCION_PROBLEMA
 import cl.duoc.huerto.domain.TipoProblema
 import cl.duoc.huerto.domain.etiqueta
 import cl.duoc.huerto.u_i.BotonAccion
+import cl.duoc.huerto.u_i.CampoValidado
 import cl.duoc.huerto.u_i.MensajeError
 import cl.duoc.huerto.u_i.SelectorDesplegable
 import cl.duoc.huerto.u_i.SelectorFoto
@@ -65,20 +67,16 @@ fun ProblemaFormScreen(onVolver: () -> Unit) {
             enabled = libre
         )
 
-        OutlinedTextField(
+        CampoValidado(
             value = estado.descripcion,
             onValueChange = viewModel::onDescripcion,
-            label = { Text("¿Qué observaste?") },
+            label = "¿Qué observaste?",
+            error = estado.errores.descripcion,
+            ayuda = "Mínimo $MIN_DESCRIPCION_PROBLEMA caracteres",
+            maxLength = MAX_DESCRIPCION_PROBLEMA,
+            singleLine = false,
             minLines = 3,
-            isError = estado.errores.descripcion != null,
-            supportingText = {
-                Text(
-                    estado.errores.descripcion
-                        ?: "${estado.descripcion.length}/$MAX_DESCRIPCION_PROBLEMA"
-                )
-            },
-            enabled = libre,
-            modifier = Modifier.fillMaxWidth()
+            enabled = libre
         )
 
         SelectorDesplegable(

@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -19,6 +20,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cl.duoc.huerto.domain.etiqueta
 import cl.duoc.huerto.domain.formatearFechaUtc
+import cl.duoc.huerto.u_i.Cargando
+import cl.duoc.huerto.u_i.panel.EstadoVacio
 
 @Composable
 fun TareasScreen(
@@ -50,16 +53,20 @@ fun TareasScreen(
                 }
             }
 
-            if (tareas.isEmpty()) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No hay tareas para mostrar")
-                }
-            } else {
-                LazyColumn(
+            val lista = tareas
+            when {
+                lista == null -> Cargando()
+                lista.isEmpty() -> EstadoVacio(
+                    Icons.AutoMirrored.Filled.Assignment,
+                    "Sin tareas",
+                    if (filtro == FiltroTarea.TODAS) "Todavía no hay tareas para mostrar."
+                    else "No hay tareas en \"${filtro.titulo}\". Prueba con otro filtro."
+                )
+                else -> LazyColumn(
                     contentPadding = PaddingValues(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 96.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(tareas, key = { it.tarea.id }) { item ->
+                    items(lista, key = { it.tarea.id }) { item ->
                         // animateItem: las tarjetas entran, salen y se reordenan con movimiento
                         Box(Modifier.animateItem()) {
                             TareaCard(

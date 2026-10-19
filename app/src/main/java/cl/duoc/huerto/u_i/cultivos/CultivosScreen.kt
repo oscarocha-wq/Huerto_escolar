@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -18,6 +19,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import cl.duoc.huerto.domain.EstadoCultivo
 import cl.duoc.huerto.domain.etiqueta
 import cl.duoc.huerto.domain.formatearFechaUtc
+import cl.duoc.huerto.u_i.Cargando
+import cl.duoc.huerto.u_i.ChipEstado
+import cl.duoc.huerto.u_i.ImagenLocal
+import cl.duoc.huerto.u_i.panel.EstadoVacio
+import androidx.compose.ui.draw.clip
+import cl.duoc.huerto.ui.theme.tono
 
 @Composable
 fun CultivosScreen(
@@ -32,18 +39,20 @@ fun CultivosScreen(
     val cultivos by viewModel.cultivos.collectAsStateWithLifecycle()
 
     Box(Modifier.fillMaxSize()) {
-        if (cultivos.isEmpty()) {
-            Text(
-                "Aún no hay cultivos. Registra el primero.",
-                modifier = Modifier.align(Alignment.Center)
+        val lista = cultivos
+        when {
+            lista == null -> Cargando()
+            lista.isEmpty() -> EstadoVacio(
+                Icons.Filled.Eco, "Sin cultivos", "Registra el primero con el botón \"Nuevo cultivo\"."
             )
-        } else {
-            LazyColumn(
+            else -> LazyColumn(
                 contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 96.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(cultivos, key = { it.cultivo.id }) { item ->
-                    CultivoCard(item, onClick = { onEditar(item.cultivo.id) })
+                items(lista, key = { it.cultivo.id }) { item ->
+                    Box(Modifier.animateItem()) {
+                        CultivoCard(item, onClick = { onEditar(item.cultivo.id) })
+                    }
                 }
             }
         }
@@ -63,7 +72,11 @@ private fun CultivoCard(item: CultivoItem, onClick: () -> Unit) {
     fun fecha(v: Long?) = if (v == null) "—" else formatearFechaUtc(v)
 
     Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp)) {
+      Row(Modifier.padding(start = 16.dp, top = 16.dp, bottom = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+        c.fotoUri?.let {
+            ImagenLocal(it, Modifier.size(64.dp).clip(MaterialTheme.shapes.small))
+        }
+        Column(Modifier.weight(1f).padding(horizontal = 16.dp)) {
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -85,22 +98,9 @@ private fun CultivoCard(item: CultivoItem, onClick: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+      }
     }
 }
 
 @Composable
-private fun EtiquetaEstadoCultivo(estado: EstadoCultivo) {
-    val color = when (estado) {
-        EstadoCultivo.CON_PROBLEMAS -> MaterialTheme.colorScheme.errorContainer
-        EstadoCultivo.LISTO_PARA_COSECHAR -> MaterialTheme.colorScheme.tertiaryContainer
-        EstadoCultivo.SEMBRADO, EstadoCultivo.EN_CRECIMIENTO -> MaterialTheme.colorScheme.primaryContainer
-        else -> MaterialTheme.colorScheme.secondaryContainer
-    }
-    Surface(color = color, shape = MaterialTheme.shapes.small) {
-        Text(
-            estado.etiqueta(),
-            style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-        )
-    }
-}
+private fun EtiquetaEstadoCultivo(estado: EstadoCultivo) = ChipEstado(estado.etiqueta(), estado.tono())

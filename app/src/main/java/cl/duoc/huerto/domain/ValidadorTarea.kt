@@ -19,7 +19,10 @@ fun validarTarea(
     tieneResponsable: Boolean
 ) = ErroresTarea(
     tipo = if (tipo == null) "Selecciona el tipo de tarea" else null,
-    descripcion = if (descripcion.isBlank()) "Escribe las instrucciones" else null,
+    descripcion = Reglas.requeridoYLargo(
+        descripcion, "las instrucciones",
+        LimitesCampo.TAREA_DESCRIPCION, min = LimitesCampo.TAREA_DESCRIPCION_MIN
+    ),
     sector = if (sectorId == null) "Selecciona un sector" else null,
     fecha = if (fechaProgramada == null) "Selecciona la fecha programada" else null,
     asignado = if (!tieneResponsable) "Selecciona un estudiante o un grupo" else null

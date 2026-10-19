@@ -12,6 +12,7 @@ object LimitesCampo {
     const val RIEGO_MAX_DIAS = 30
 
     const val TAREA_DESCRIPCION = 300
+    const val TAREA_DESCRIPCION_MIN = 10
     const val COMENTARIO = 300
     const val MOTIVO_RECHAZO_MIN = 10
 
@@ -23,14 +24,19 @@ object LimitesCampo {
     const val MIN_TEXTO = 3
 }
 
-/** Reglas reutilizables: devuelven el mensaje de error, o null si es válido. */
+/**
+ * Reglas reutilizables: devuelven el mensaje de error, o null si es válido.
+ * `campo` se escribe con su artículo: "el nombre", "la ubicación".
+ */
 object Reglas {
     fun requerido(valor: String, campo: String): String? =
-        if (valor.isBlank()) "$campo es obligatorio" else null
+        if (valor.isBlank()) "Ingresa $campo" else null
 
+    /** Solo revisa el largo si hay texto; si el campo es obligatorio, usa requeridoYLargo. */
+    @Suppress("UNUSED_PARAMETER")
     fun largo(valor: String, campo: String, max: Int, min: Int = 0): String? = when {
-        valor.trim().length < min -> "$campo debe tener al menos $min caracteres"
-        valor.length > max -> "$campo no puede superar $max caracteres"
+        valor.isNotBlank() && valor.trim().length < min -> "Escribe al menos $min caracteres"
+        valor.length > max -> "Máximo $max caracteres"
         else -> null
     }
 
@@ -38,11 +44,11 @@ object Reglas {
         requerido(valor, campo) ?: largo(valor, campo, max, min)
 
     fun enteroPositivo(valor: String, campo: String, max: Int): String? {
-        if (valor.isBlank()) return "$campo es obligatorio"
-        val n = valor.toIntOrNull() ?: return "$campo debe ser un número entero"
+        if (valor.isBlank()) return "Ingresa $campo"
+        val n = valor.toIntOrNull() ?: return "Debe ser un número entero"
         return when {
-            n <= 0 -> "$campo debe ser mayor que 0"
-            n > max -> "$campo no puede ser mayor que $max"
+            n <= 0 -> "Debe ser mayor que 0"
+            n > max -> "No puede ser mayor que $max"
             else -> null
         }
     }

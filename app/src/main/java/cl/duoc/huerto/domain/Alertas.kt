@@ -95,7 +95,7 @@ fun generarAlertas(
                 "por-validar-${t.id}", TipoAlerta.POR_VALIDAR, SeveridadAlerta.AVISO,
                 "Tarea por validar: $nombre",
                 "$donde · esperando tu revisión",
-                t.fechaRealizacion, tareaId = t.id
+                t.fechaProgramada, tareaId = t.id
             )
         }
     }

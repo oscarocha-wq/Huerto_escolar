@@ -39,10 +39,11 @@ class ProblemasViewModel(
         }
     }
 
-    val problemas: StateFlow<List<ProblemaItem>> =
+    /** null = todavía cargando. */
+    val problemas: StateFlow<List<ProblemaItem>?> =
         combine(todos, _filtro) { items, f ->
             if (f == null) items else items.filter { it.problema.estado == f }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     fun onFiltro(f: EstadoProblema?) { _filtro.value = f }
 
