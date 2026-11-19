@@ -26,6 +26,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun problemaDao(): ProblemaDao
     abstract fun seguimientoDao(): SeguimientoDao
     abstract fun lecturaDao(): LecturaDao
+    abstract fun sincronizacionDao(): SincronizacionDao
 
     companion object {
         @Volatile private var INSTANCE: AppDatabase? = null

@@ -1,7 +1,10 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
-    id("com.google.devtools.ksp") version "2.3.4"}
+    id("com.google.devtools.ksp") version "2.3.4"
+    // Kover: cobertura de las pruebas unitarias
+    id("org.jetbrains.kotlinx.kover") version "0.9.11"
+}
 
 android {
     namespace = "cl.duoc.huerto"
@@ -69,4 +72,40 @@ dependencies {
 
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
+
+    // Retrofit: consumir el backend huertoapi
+    implementation("com.squareup.retrofit2:retrofit:3.0.0")
+    implementation("com.squareup.retrofit2:converter-gson:3.0.0")
+}
+
+// ---------- Kover (cobertura de pruebas unitarias) ----------
+// Informe HTML:  gradlew koverHtmlReportDebug  -> app/build/reports/kover/htmlDebug/index.html
+// Informe XML:   gradlew koverXmlReportDebug
+// Verificar mínimo: gradlew koverVerifyDebug
+kover {
+    reports {
+        filters {
+            excludes {
+                // Pantallas de Compose: se prueban con pruebas de interfaz, no unitarias
+                annotatedBy("androidx.compose.runtime.Composable")
+                classes(
+                    "*ComposableSingletons*",
+                    // Código que genera Room/KSP automáticamente
+                    "*_Impl", "*_Impl\$*",
+                    // Arranque de Android y configuración (sin lógica que probar)
+                    "cl.duoc.huerto.MainActivity",
+                    "cl.duoc.huerto.HuertoApp",
+                    "cl.duoc.huerto.BuildConfig",
+                    "cl.duoc.huerto.data.local.AppDatabase*",
+                    "cl.duoc.huerto.data.remote.RetrofitClient*"
+                )
+            }
+        }
+        verify {
+            rule("Cobertura mínima de líneas") {
+                // Ajusten este número al porcentaje real que les dé el informe
+                minBound(30)
+            }
+        }
+    }
 }

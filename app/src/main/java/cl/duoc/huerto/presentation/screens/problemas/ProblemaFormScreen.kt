@@ -18,6 +18,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import cl.duoc.huerto.domain.model.TipoProblema
 import cl.duoc.huerto.domain.model.etiqueta
 import cl.duoc.huerto.domain.validation.MAX_DESCRIPCION_PROBLEMA
+import cl.duoc.huerto.domain.validation.MIN_DESCRIPCION_PROBLEMA
 import cl.duoc.huerto.presentation.components.BotonAccion
 import cl.duoc.huerto.presentation.components.CampoValidado
 import cl.duoc.huerto.presentation.components.MensajeError

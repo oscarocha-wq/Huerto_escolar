@@ -13,9 +13,9 @@ import cl.duoc.huerto.domain.model.Tarea
 import cl.duoc.huerto.domain.model.TipoAlerta
 import cl.duoc.huerto.domain.model.TipoTarea
 import cl.duoc.huerto.domain.model.etiqueta
+import cl.duoc.huerto.domain.util.formatearFechaUtc
 import cl.duoc.huerto.domain.rules.estaAtrasada
 import cl.duoc.huerto.domain.rules.puedeVerTarea
-
 const val DIA_MS = 86_400_000L
 const val DIAS_AVISO_RIEGO = 2
 const val DIAS_AVISO_COSECHA = 7

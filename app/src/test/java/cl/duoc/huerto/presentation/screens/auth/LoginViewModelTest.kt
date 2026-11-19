@@ -28,6 +28,7 @@ private class FakeUsuarioDao : UsuarioDao {
         usuarios.firstOrNull { it.id == id && it.clave == clave }
     override fun estudiantes(): Flow<List<Usuario>> = emptyFlow()
     override suspend fun insertarTodos(usuarios: List<Usuario>) {}
+    override suspend fun guardar(usuario: Usuario) {}
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)

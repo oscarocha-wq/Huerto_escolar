@@ -1,4 +1,4 @@
-package cl.duoc.huerto.presentation.screens.sectores
+﻿package cl.duoc.huerto.presentation.screens.sectores
 
 import android.app.Application
 import androidx.compose.foundation.layout.*
@@ -22,6 +22,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cl.duoc.huerto.domain.model.Cultivo
 import cl.duoc.huerto.domain.model.etiqueta
+import cl.duoc.huerto.domain.util.formatearFechaUtc
 import cl.duoc.huerto.presentation.components.ChipEstado
 import cl.duoc.huerto.presentation.theme.Tono
 import cl.duoc.huerto.presentation.theme.coloresTono

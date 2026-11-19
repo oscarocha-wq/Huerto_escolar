@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import cl.duoc.huerto.domain.model.Alerta
 import cl.duoc.huerto.presentation.components.UsuarioCard
+import cl.duoc.huerto.presentation.screens.sincronizacion.TarjetaSincronizacion
 import cl.duoc.huerto.presentation.theme.Tono
 import cl.duoc.huerto.presentation.theme.coloresTono
 import cl.duoc.huerto.presentation.theme.semanticColors
@@ -111,6 +112,9 @@ fun InicioScreen(
             Spacer(Modifier.width(8.dp))
             Text("Ver historial de actividades")
         }
+
+        // Conexión con el backend huertoapi (Retrofit)
+        TarjetaSincronizacion()
     }
 }
 

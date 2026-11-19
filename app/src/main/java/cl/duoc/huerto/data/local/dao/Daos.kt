@@ -6,7 +6,8 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface UsuarioDao {
-    @Query("SELECT * FROM usuarios WHERE id = :id AND clave = :clave AND activo = 1")
+    // clave != '' : un usuario bajado del servidor sin clave no puede entrar sin conexión
+    @Query("SELECT * FROM usuarios WHERE id = :id AND clave = :clave AND clave != '' AND activo = 1")
     suspend fun login(id: String, clave: String): Usuario?
 
     @Query("SELECT * FROM usuarios WHERE perfil = 'ESTUDIANTE'")
@@ -14,6 +15,10 @@ interface UsuarioDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertarTodos(usuarios: List<Usuario>)
+
+    /** Inserta o actualiza (sin borrar) al usuario que entró con el servidor. */
+    @Upsert
+    suspend fun guardar(usuario: Usuario)
 }
 
 @Dao
@@ -146,6 +151,41 @@ abstract class SeguimientoDao {
         val nuevo = if (validacion.resultado == ResultadoValidacion.APROBADA) EstadoTarea.VALIDADA
                     else EstadoTarea.RECHAZADA
         cambiarEstadoTarea(validacion.tareaId, nuevo.name)
+    }
+}
+
+/**
+ * Guarda en Room lo que llega del backend (huertoapi).
+ * Usa @Upsert (insertar o actualizar) y NO REPLACE: REPLACE borra la fila y la vuelve
+ * a crear, y eso activaría el ON DELETE CASCADE, borrando evidencias y validaciones.
+ */
+@Dao
+abstract class SincronizacionDao {
+    @Upsert abstract suspend fun upsertUsuarios(usuarios: List<Usuario>)
+    @Upsert abstract suspend fun upsertSectores(sectores: List<Sector>)
+    @Upsert abstract suspend fun upsertCultivos(cultivos: List<Cultivo>)
+    @Upsert abstract suspend fun upsertTareas(tareas: List<Tarea>)
+    @Upsert abstract suspend fun upsertProblemas(problemas: List<Problema>)
+
+    /** El servidor nunca envía la clave: se conserva la que ya estaba en el teléfono. */
+    @Query("SELECT * FROM usuarios")
+    abstract suspend fun usuariosLocales(): List<Usuario>
+
+    /** Todo o nada, y en el orden de las claves foráneas (padres antes que hijos). */
+    @Transaction
+    open suspend fun guardarTodo(
+        usuarios: List<Usuario>,
+        sectores: List<Sector>,
+        cultivos: List<Cultivo>,
+        tareas: List<Tarea>,
+        problemas: List<Problema>
+    ) {
+        val claves = usuariosLocales().associate { it.id to it.clave }
+        upsertUsuarios(usuarios.map { it.copy(clave = claves[it.id] ?: it.clave) })
+        upsertSectores(sectores)
+        upsertCultivos(cultivos)
+        upsertTareas(tareas)
+        upsertProblemas(problemas)
     }
 }
 
