@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import cl.duoc.huerto.domain.model.Alerta
 import cl.duoc.huerto.presentation.components.UsuarioCard
+import cl.duoc.huerto.presentation.screens.clima.TarjetaClima
 import cl.duoc.huerto.presentation.screens.sincronizacion.TarjetaSincronizacion
 import cl.duoc.huerto.presentation.theme.Tono
 import cl.duoc.huerto.presentation.theme.coloresTono
@@ -113,7 +114,10 @@ fun InicioScreen(
             Text("Ver historial de actividades")
         }
 
-        // Conexión con el backend huertoapi (Retrofit)
+        // API externa (Open-Meteo) con Retrofit
+        TarjetaClima()
+
+        // Conexión con el microservicio huertoapi (Retrofit)
         TarjetaSincronizacion()
     }
 }

@@ -34,6 +34,7 @@ kover {
                     "cl.duoc.huerto.presentation.screens.main.*",
                     "cl.duoc.huerto.presentation.screens.avisos.AvisosNotificacionKt*",
                     "cl.duoc.huerto.presentation.screens.sincronizacion.TarjetaSincronizacionKt*",
+                    "cl.duoc.huerto.presentation.screens.clima.TarjetaClimaKt*",
                     "cl.duoc.huerto.presentation.screens.tareas.ComponentesTareaKt*",
                     "cl.duoc.huerto.presentation.screens.problemas.ComponentesProblemaKt*",
                     // Fábricas de ViewModel: necesitan Application (Android)
@@ -49,6 +50,7 @@ kover {
                     "cl.duoc.huerto.data.local.AppDatabase*",
                     "cl.duoc.huerto.data.local.DatosDemoKt*",
                     "cl.duoc.huerto.data.remote.RetrofitClient*",
+                    "cl.duoc.huerto.data.remote.clima.ClimaClient*",
                     // Archivos (cámara/galería) y notificaciones del sistema
                     "cl.duoc.huerto.core.storage.*",
                     "cl.duoc.huerto.core.notification.*"

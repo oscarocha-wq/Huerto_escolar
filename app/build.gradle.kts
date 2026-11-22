@@ -1,14 +1,19 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     id("com.google.devtools.ksp") version "2.3.4"
-<<<<<<< HEAD
-    // Kover: cobertura de las pruebas unitarias
-    id("org.jetbrains.kotlinx.kover") version "0.9.11"
-=======
     // Kover: cobertura de las pruebas unitarias (la versión se define en el build.gradle.kts raíz)
     id("org.jetbrains.kotlinx.kover")
->>>>>>> 7773d96 (test: cobertura kover, pruebas, login con respaldo local y APK firmada)
+}
+
+// ---------- Firma de la APK release ----------
+// Las contraseñas NO van en el repositorio: se leen de keystore.properties (en la raíz,
+// ignorado por Git). Si el archivo no existe, el proyecto compila igual (sin firma release).
+val archivoFirma = File(rootDir, "keystore.properties")
+val datosFirma = Properties().apply {
+    if (archivoFirma.exists()) archivoFirma.inputStream().use { load(it) }
 }
 
 android {
@@ -21,14 +26,30 @@ android {
         applicationId = "cl.duoc.huerto"
         minSdk = 26
         targetSdk = 37
+        // versionCode: número entero que Android compara para permitir actualizar (siempre sube).
+        // versionName: la versión que ve el usuario.
         versionCode = 2
         versionName = "2.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        if (archivoFirma.exists()) {
+            create("release") {
+                storeFile = File(rootDir, datosFirma.getProperty("storeFile"))
+                storePassword = datosFirma.getProperty("storePassword")
+                keyAlias = datosFirma.getProperty("keyAlias")
+                keyPassword = datosFirma.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            if (archivoFirma.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             optimization {
                 enable = true
                 packageScope = setOf("androidx.**", "kotlin.**", "kotlinx.**")
@@ -83,36 +104,33 @@ dependencies {
     implementation("com.squareup.retrofit2:converter-gson:3.0.0")
 }
 
+// ---------- APK con nombre legible ----------
+// gradlew :app:exportarApkRelease  ->  app/build/apk-exportadas/HuertoEscolar-v1.0-build1.apk
+val nombreApp = "HuertoEscolar"
+val versionApp = android.defaultConfig.versionName ?: "1.0"
+val buildApp = android.defaultConfig.versionCode ?: 1
+
+tasks.register<Copy>("exportarApkRelease") {
+    dependsOn("assembleRelease")
+    from(layout.buildDirectory.dir("outputs/apk/release")) {
+        include("app-release.apk")
+        rename { "$nombreApp-v$versionApp-build$buildApp.apk" }
+    }
+    into(layout.buildDirectory.dir("apk-exportadas"))
+}
+
 // ---------- Kover (cobertura de pruebas unitarias) ----------
 // Informe HTML:  gradlew koverHtmlReportDebug  -> app/build/reports/kover/htmlDebug/index.html
 // Informe XML:   gradlew koverXmlReportDebug
-<<<<<<< HEAD
-// Verificar mínimo: gradlew koverVerifyDebug
-=======
 // Verificar mínimo (80 %): gradlew koverVerifyDebug
 //
 // Se mide la lógica que se prueba con pruebas UNITARIAS (domain, data, ViewModels).
 // Se excluye lo que solo se puede probar en un dispositivo/emulador:
 // pantallas Compose, arranque de Android, Room/Retrofit generados y acceso a archivos/notificaciones.
->>>>>>> 7773d96 (test: cobertura kover, pruebas, login con respaldo local y APK firmada)
 kover {
     reports {
         filters {
             excludes {
-<<<<<<< HEAD
-                // Pantallas de Compose: se prueban con pruebas de interfaz, no unitarias
-                annotatedBy("androidx.compose.runtime.Composable")
-                classes(
-                    "*ComposableSingletons*",
-                    // Código que genera Room/KSP automáticamente
-                    "*_Impl", "*_Impl\$*",
-                    // Arranque de Android y configuración (sin lógica que probar)
-                    "cl.duoc.huerto.MainActivity",
-                    "cl.duoc.huerto.HuertoApp",
-                    "cl.duoc.huerto.BuildConfig",
-                    "cl.duoc.huerto.data.local.AppDatabase*",
-                    "cl.duoc.huerto.data.remote.RetrofitClient*"
-=======
                 // Interfaz de Compose (se prueba con pruebas instrumentadas, no unitarias)
                 annotatedBy("androidx.compose.runtime.Composable")
                 classes(
@@ -129,6 +147,7 @@ kover {
                     "cl.duoc.huerto.presentation.screens.main.*",
                     "cl.duoc.huerto.presentation.screens.avisos.AvisosNotificacionKt*",
                     "cl.duoc.huerto.presentation.screens.sincronizacion.TarjetaSincronizacionKt*",
+                    "cl.duoc.huerto.presentation.screens.clima.TarjetaClimaKt*",
                     "cl.duoc.huerto.presentation.screens.tareas.ComponentesTareaKt*",
                     "cl.duoc.huerto.presentation.screens.problemas.ComponentesProblemaKt*",
                     // Fábricas de ViewModel: necesitan Application (Android)
@@ -144,21 +163,16 @@ kover {
                     "cl.duoc.huerto.data.local.AppDatabase*",
                     "cl.duoc.huerto.data.local.DatosDemoKt*",
                     "cl.duoc.huerto.data.remote.RetrofitClient*",
+                    "cl.duoc.huerto.data.remote.clima.ClimaClient*",
                     // Archivos (cámara/galería) y notificaciones del sistema
                     "cl.duoc.huerto.core.storage.*",
                     "cl.duoc.huerto.core.notification.*"
->>>>>>> 7773d96 (test: cobertura kover, pruebas, login con respaldo local y APK firmada)
                 )
             }
         }
         verify {
             rule("Cobertura mínima de líneas") {
-<<<<<<< HEAD
-                // Ajusten este número al porcentaje real que les dé el informe
-                minBound(30)
-=======
                 minBound(80)
->>>>>>> 7773d96 (test: cobertura kover, pruebas, login con respaldo local y APK firmada)
             }
         }
     }

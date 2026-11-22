@@ -3,6 +3,9 @@ package cl.duoc.huerto.core.di
 import android.content.Context
 import cl.duoc.huerto.data.local.AppDatabase
 import cl.duoc.huerto.data.remote.RetrofitClient
+import cl.duoc.huerto.data.remote.clima.ClimaClient
+import cl.duoc.huerto.data.repository.ClimaRepositoryImpl
+import cl.duoc.huerto.domain.repository.ClimaRepository
 import cl.duoc.huerto.data.repository.CultivoRepositoryImpl
 import cl.duoc.huerto.data.repository.LecturaRepositoryImpl
 import cl.duoc.huerto.data.repository.ProblemaRepositoryImpl
@@ -32,19 +35,19 @@ object AppContainer {
         UsuarioRepositoryImpl(db(context).usuarioDao(), RetrofitClient.api)
 
     fun sectorRepository(context: Context): SectorRepository =
-        SectorRepositoryImpl(db(context).sectorDao())
+        SectorRepositoryImpl(db(context).sectorDao(), RetrofitClient.api)
 
     fun cultivoRepository(context: Context): CultivoRepository =
-        CultivoRepositoryImpl(db(context).cultivoDao())
+        CultivoRepositoryImpl(db(context).cultivoDao(), RetrofitClient.api)
 
     fun tareaRepository(context: Context): TareaRepository =
-        TareaRepositoryImpl(db(context).tareaDao())
+        TareaRepositoryImpl(db(context).tareaDao(), RetrofitClient.api)
 
     fun seguimientoRepository(context: Context): SeguimientoRepository =
-        SeguimientoRepositoryImpl(db(context).seguimientoDao())
+        SeguimientoRepositoryImpl(db(context).seguimientoDao(), RetrofitClient.api)
 
     fun problemaRepository(context: Context): ProblemaRepository =
-        ProblemaRepositoryImpl(db(context).problemaDao())
+        ProblemaRepositoryImpl(db(context).problemaDao(), RetrofitClient.api)
 
     fun lecturaRepository(context: Context): LecturaRepository =
         LecturaRepositoryImpl(db(context).lecturaDao())
@@ -52,4 +55,8 @@ object AppContainer {
     /** Trae los datos del backend huertoapi (Retrofit) y los guarda en Room. */
     fun sincronizacionRepository(context: Context): SincronizacionRepository =
         SincronizacionRepositoryImpl(RetrofitClient.api, db(context).sincronizacionDao())
+
+    /** API EXTERNA del clima (Open-Meteo): no usa Room ni el microservicio. */
+    fun climaRepository(context: Context): ClimaRepository =
+        ClimaRepositoryImpl(ClimaClient.api)
 }

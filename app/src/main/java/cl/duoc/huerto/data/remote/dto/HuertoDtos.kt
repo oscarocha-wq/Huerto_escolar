@@ -156,3 +156,49 @@ data class ProblemaDto(
         )
     }
 }
+// ---------- Cuerpos de los PATCH ----------
+
+/** PATCH /tareas/{id}/estado -> { "estado": "VALIDADA" } */
+data class EstadoTareaDto(val estado: EstadoTarea)
+
+/** PATCH /problemas/{id}/estado */
+data class AtencionProblemaDto(
+    val estado: EstadoProblema,
+    val comentarioDocente: String?,
+    val atendidoPorId: String?
+)
+
+// ---------- De entidad de Room a DTO (para enviar al servidor) ----------
+// conId = false al crear: el servidor asigna el id.
+
+fun Sector.toDto(conId: Boolean = true) = SectorDto(
+    id = if (conId) id.toLong() else null,
+    codigo = codigo, nombre = nombre, descripcion = descripcion, ubicacion = ubicacion,
+    estado = estado, responsableId = responsableId,
+    fechaCreacion = fechaCreacion, fechaActualizacion = fechaActualizacion
+)
+
+fun Cultivo.toDto(conId: Boolean = true) = CultivoDto(
+    id = if (conId) id.toLong() else null,
+    nombre = nombre, descripcion = descripcion, sectorId = sectorId.toLong(),
+    fechaSiembra = fechaSiembra, fechaTrasplante = fechaTrasplante,
+    fechaCosechaEstimada = fechaCosechaEstimada, frecuenciaRiegoDias = frecuenciaRiegoDias,
+    estado = estado, observaciones = observaciones, fotoUri = fotoUri
+)
+
+fun Tarea.toDto(conId: Boolean = true) = TareaDto(
+    id = if (conId) id.toLong() else null,
+    tipo = tipo, descripcion = descripcion, sectorId = sectorId.toLong(),
+    cultivoId = cultivoId?.toLong(), fechaCreacion = fechaCreacion,
+    fechaProgramada = fechaProgramada, asignadoId = asignadoId, grupo = grupo,
+    creadaPorId = creadaPorId, estado = estado
+)
+
+fun Problema.toDto(conId: Boolean = true) = ProblemaDto(
+    id = if (conId) id.toLong() else null,
+    tipo = tipo, descripcion = descripcion, sectorId = sectorId.toLong(),
+    cultivoId = cultivoId?.toLong(), reportadoPorId = reportadoPorId,
+    fechaReporte = fechaReporte, fotoRuta = fotoRuta, estado = estado,
+    comentarioDocente = comentarioDocente, atendidoPorId = atendidoPorId,
+    fechaAtencion = fechaAtencion
+)

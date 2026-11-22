@@ -15,3 +15,5 @@
 local.properties
 .idea/
 .kotlin/
+# Firma: las contraseñas NO se suben (el .jks académico sí va en el repo, lo pide la pauta)
+keystore.properties
