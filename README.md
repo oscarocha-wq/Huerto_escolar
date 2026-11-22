@@ -115,3 +115,7 @@ En Android Studio: clic derecho sobre `app/src/test` → **Run 'Tests in huerto'
 ```
 gradlew test
 ```
+
+cobertura:
+.\gradlew koverHtmlReport
+
